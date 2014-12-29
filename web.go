@@ -26,16 +26,13 @@ func NewStepArguments(query url.Values) stepArguments {
 }
 
 func addRow(rowNumber int, baseColumn int, genMap map[int]map[int]bool) {
-    if row, ok := genMap[rowNumber]; ok {
-        row[baseColumn] = row[baseColumn]
-        row[baseColumn+1] = row[baseColumn+1]
-        row[baseColumn-1] = row[baseColumn-1]
-    } else {
+    if _, ok := genMap[rowNumber]; !ok {
         genMap[rowNumber] = map[int]bool{}
-        genMap[rowNumber][baseColumn] = false
-        genMap[rowNumber][baseColumn+1] = false
-        genMap[rowNumber][baseColumn-1] = false
     }
+
+    genMap[rowNumber][baseColumn] = genMap[rowNumber][baseColumn]
+    genMap[rowNumber][baseColumn+1] = genMap[rowNumber][baseColumn+1]
+    genMap[rowNumber][baseColumn-1] = genMap[rowNumber][baseColumn-1]
 }
 
 func addSurroundingCells(c cell, genMap map[int]map[int]bool) {
@@ -47,13 +44,10 @@ func addSurroundingCells(c cell, genMap map[int]map[int]bool) {
 func buildGenerationMap(generation []cell) map[int]map[int]bool {
     generationMap := map[int]map[int]bool{}
     for _, c := range generation {
-        if row, ok := generationMap[c.Row]; ok {
-            row[c.Column] = true
-        } else {
+        if _, ok := generationMap[c.Row]; !ok {
             generationMap[c.Row] = map[int]bool{}
-            generationMap[c.Row][c.Column] = true
         }
-
+        generationMap[c.Row][c.Column] = true
         addSurroundingCells(c, generationMap)
     }
     return generationMap
@@ -76,13 +70,13 @@ func getNextGeneration(liveCells []cell) []cell {
     nextGen := []cell{}
     generationMap := buildGenerationMap(liveCells)
 
-    for k, v := range generationMap {
-        for kk, vv := range v {
-            count := getNeighborCount(k, kk, generationMap)
-            if vv && (count == 2 || count == 3) {
-                nextGen = append(nextGen, cell{kk, k})
-            } else if !vv && count == 3 {
-                nextGen = append(nextGen, cell{kk, k})
+    for rowNumber, columns := range generationMap {
+        for columnNumber, isAlive := range columns {
+            count := getNeighborCount(rowNumber, columnNumber, generationMap)
+            if isAlive && (count == 2 || count == 3) {
+                nextGen = append(nextGen, cell{columnNumber, rowNumber})
+            } else if !isAlive && count == 3 {
+                nextGen = append(nextGen, cell{columnNumber, rowNumber})
             }
         }
     }
@@ -97,12 +91,11 @@ func stepHandler(res http.ResponseWriter, req *http.Request) {
     req.ParseForm()
     sa := NewStepArguments(req.Form)
 
-    cells := sa.Cells
     for i := 0; i < sa.Steps; i++ {
-        cells = getNextGeneration(cells)
+        sa.Cells = getNextGeneration(sa.Cells)
     }
 
-    json.NewEncoder(res).Encode(cells)
+    json.NewEncoder(res).Encode(sa.Cells)
 }
 
 func main() {
