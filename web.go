@@ -100,7 +100,12 @@ func stepHandler(res http.ResponseWriter, req *http.Request) {
     req.ParseForm()
     sa := NewStepArguments(req.Form)
 
-    json.NewEncoder(res).Encode(getNextGeneration(sa.Cells))
+    cells := sa.Cells
+    for i := 0; i < sa.Steps; i++ {
+        cells = getNextGeneration(cells)
+    }
+
+    json.NewEncoder(res).Encode(cells)
 }
 
 func main() {
