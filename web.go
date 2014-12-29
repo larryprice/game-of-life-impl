@@ -15,17 +15,14 @@ type cell struct {
 type stepArguments struct {
     Cells []cell `json:"cells"`
     Steps int `json:"steps"`
-    Direction int `json:"direction"`
 }
 
 func NewStepArguments(query url.Values) stepArguments {
     var cells []cell
     json.Unmarshal([]byte(query["cells"][0]), &cells)
-
     steps, _ := strconv.Atoi(query["steps"][0])
-    direction, _ := strconv.Atoi(query["direction"][0])
 
-    return stepArguments{cells, steps, direction}
+    return stepArguments{cells, steps}
 }
 
 func addRow(rowNumber int, baseColumn int, genMap map[int]map[int]bool) {
